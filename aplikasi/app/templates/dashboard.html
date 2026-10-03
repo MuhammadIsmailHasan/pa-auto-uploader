@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row justify-content-between gap-2 align-items-lg-center mb-3">
+  <h1 class="h4 mb-0">Dashboard Identifikasi Dokumen</h1>
+  <div class="d-flex flex-wrap gap-2">
+    <form id="folderImportForm" method="post" action="{{ url_for('dashboard.import_folder_action') }}" enctype="multipart/form-data">
+      <input
+        id="folderImportInput"
+        class="visually-hidden"
+        type="file"
+        name="pdf_folder"
+        accept="application/pdf,.pdf"
+        webkitdirectory
+        directory
+        multiple
+      >
+      <input id="folderImportId" type="hidden" name="import_id" value="">
+      <button id="folderImportButton" class="btn btn-primary" type="button">Pilih Folder PDF</button>
+      <button id="folderImportStartButton" class="btn btn-success" type="button" disabled>Mulai Import Folder</button>
+      <span id="folderSelectionSummary" class="badge text-bg-secondary">Belum ada folder dipilih</span>
+    </form>
+    <form id="clearNewIdentifiedForm" method="post" action="{{ url_for('dashboard.clear_new_identified_action') }}">
+      <button class="btn btn-outline-danger" type="submit">Clear Salah Pilih Folder</button>
+    </form>
+    {% if counts.get('gagal_upload', 0) %}
+    <form method="post" action="{{ url_for('dashboard.retry_failed_action') }}">
+      <button class="btn btn-outline-warning" type="submit" onclick="return confirm('Siapkan semua dokumen gagal untuk upload ulang?')">Siapkan Ulang {{ counts.get('gagal_upload', 0) }} Gagal</button>
+    </form>
+    {% endif %}
+    <form class="upload-ready-form" method="post" action="{{ url_for('dashboard.upload_ready_action') }}">
+      <input class="upload-ready-id" type="hidden" name="upload_id" value="">
+      <input type="hidden" name="upload_mode" value="pmh_ppp">
+      <button class="btn btn-danger upload-ready-button" type="button">Upload PMH & PPP</button>
+    </form>
+    <form class="upload-ready-form" method="post" action="{{ url_for('dashboard.upload_ready_action') }}">
+      <input class="upload-ready-id" type="hidden" name="upload_id" value="">
+      <input type="hidden" name="upload_mode" value="jsp">
+      <button class="btn btn-danger upload-ready-button" type="button">Upload JSP</button>
+    </form>
+    <form class="upload-ready-form" method="post" action="{{ url_for('dashboard.upload_ready_action') }}">
+      <input class="upload-ready-id" type="hidden" name="upload_id" value="">
+      <input type="hidden" name="upload_mode" value="phs">
+      <button class="btn btn-danger upload-ready-button" type="button">Upload PHS</button>
+    </form>
+    <form class="upload-ready-form" method="post" action="{{ url_for('dashboard.upload_ready_action') }}">
+      <input class="upload-ready-id" type="hidden" name="upload_id" value="">
+      <input type="hidden" name="upload_mode" value="bas">
+      <button class="btn btn-success upload-ready-button" type="button">Upload BAS</button>
+    </form>
+    <form class="upload-ready-form" method="post" action="{{ url_for('dashboard.upload_ready_action') }}">
+      <input class="upload-ready-id" type="hidden" name="upload_id" value="">
+      <input type="hidden" name="upload_mode" value="all_mahfudin">
+      <button class="btn btn-dark upload-ready-button" type="button">Upload Semua Dokumen Penetapan</button>
+    </form>
+  </div>
+</div>
+
+{% if latest_import and latest_import.message %}
+<div class="alert alert-{{ 'danger' if latest_import.phase == 'gagal' else 'success' if latest_import.phase == 'selesai' else 'info' }} mb-3">
+  {% if latest_import.phase == 'selesai' %}
+  Pemeriksaan folder terakhir selesai. Angka audit di bawah adalah catatan saat impor; status terkini ada pada kartu dashboard.
+  {% else %}
+  {{ latest_import.message }}
+  {% endif %}
+</div>
+{% endif %}
+
+{% if latest_import and latest_import.audit %}
+{% set audit = latest_import.audit %}
+<div class="card mb-3 border-info">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h2 class="h6 mb-0">Catatan Saat Pemeriksaan Folder</h2>
+      <span class="badge text-bg-info">Snapshot impor</span>
+    </div>
+    <div class="row g-2 small">
+      <div class="col-6 col-md-3"><strong>{{ audit.selected }}</strong> PDF dipilih</div>
+      <div class="col-6 col-md-3"><strong>{{ audit.new }}</strong> dokumen baru</div>
+      <div class="col-6 col-md-3"><strong>{{ audit.known }}</strong> pernah diproses</div>
+      <div class="col-6 col-md-3"><strong>{{ audit.identified }}</strong> teridentifikasi</div>
+      <div class="col-6 col-md-3 text-primary"><strong>{{ audit.ready_upload }}</strong> siap upload</div>
+      <div class="col-6 col-md-3 text-success"><strong>{{ audit.already_in_sipp }}</strong> sudah ada di SIPP</div>
+      <div class="col-6 col-md-3 text-success"><strong>{{ audit.uploaded_by_app }}</strong> diupload aplikasi</div>
+      <div class="col-6 col-md-3 text-warning"><strong>{{ audit.needs_verification }}</strong> perlu verifikasi</div>
+      <div class="col-6 col-md-3 text-danger"><strong>{{ audit.upload_failed }}</strong> gagal upload</div>
+      <div class="col-6 col-md-3"><strong>{{ audit.still_processing }}</strong> masih diproses</div>
+      <div class="col-6 col-md-3"><strong>{{ audit.import_failed }}</strong> gagal import</div>
+    </div>
+    <div class="text-muted small mt-2">Jumlah record dapat lebih banyak dari PDF karena dokumen gabungan dapat dipisah menjadi dua dokumen.</div>
+  </div>
+</div>
+{% endif %}
+
+<div id="folderImportProgress" class="import-progress d-none mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <span id="folderImportStatus" class="small text-muted">Menyiapkan upload...</span>
+    <span id="folderImportPercent" class="small fw-semibold">0%</span>
+  </div>
+  <div class="progress" role="progressbar" aria-label="Progress upload folder PDF" aria-valuemin="0" aria-valuemax="100">
+    <div id="folderImportProgressBar" class="progress-bar" style="width: 0%">0%</div>
+  </div>
+</div>
+
+<div id="uploadReadyProgress" class="import-progress d-none mb-3">
+  <div class="d-flex justify-content-between align-items-center mb-1">
+    <span id="uploadReadyStatus" class="small text-muted">Menyiapkan upload otomatis...</span>
+    <span id="uploadReadyPercent" class="small fw-semibold">0%</span>
+  </div>
+  <div class="progress" role="progressbar" aria-label="Progress upload otomatis" aria-valuemin="0" aria-valuemax="100">
+    <div id="uploadReadyProgressBar" class="progress-bar bg-danger" style="width: 0%">0%</div>
+  </div>
+  <div class="d-flex gap-2 mt-2">
+    <button id="uploadPauseButton" class="btn btn-outline-secondary btn-sm" type="button" disabled>Jeda</button>
+    <button id="uploadResumeButton" class="btn btn-outline-primary btn-sm" type="button" disabled>Lanjutkan</button>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  {% for status, count in counts.items() %}
+  <div class="col-6 col-md-4 col-xl-2">
+    <a class="text-decoration-none" href="{{ url_for('documents.index', status=status) }}">
+      <div class="card stat-card">
+        <div class="card-body">
+          <div class="text-muted small text-uppercase">{{ status.replace('_', ' ') }}</div>
+          <div class="fs-3 fw-semibold">{{ count }}</div>
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+  <h1 class="h4 mb-0">Aktivitas Terbaru</h1>
+  <a class="btn btn-outline-primary btn-sm" href="{{ url_for('documents.index') }}">Lihat semua</a>
+</div>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>File</th>
+        <th>Nomor Perkara</th>
+        <th>Jenis</th>
+        <th>Status</th>
+        <th>Error terakhir</th>
+        <th>Diperbarui</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in latest_documents %}
+      <tr>
+        <td><a href="{{ url_for('documents.detail', document_id=doc.id) }}">{{ doc.original_filename }}</a></td>
+        <td>{{ doc.case_number or '-' }}</td>
+        <td>{{ doc.document_type or '-' }}</td>
+        <td><span class="badge text-bg-secondary">{{ doc.status.replace('_', ' ') }}</span></td>
+        <td class="small {% if doc.error_message %}text-danger{% else %}text-muted{% endif %}">{{ doc.error_message or '-' }}</td>
+        <td>{{ doc.updated_at.strftime('%d-%m-%Y %H:%M') }}</td>
+        <td>
+          {% if doc.status == 'gagal_upload' %}
+          <form method="post" action="{{ url_for('documents.retry_upload', document_id=doc.id) }}">
+            <button class="btn btn-outline-warning btn-sm">Siapkan Ulang</button>
+          </form>
+          {% elif doc.status == 'perlu_verifikasi' %}
+          <form method="post" action="{{ url_for('documents.delete', document_id=doc.id) }}" onsubmit="return confirm('Hapus dokumen ini beserta file salinannya?')">
+            <button class="btn btn-outline-danger btn-sm">Hapus</button>
+          </form>
+          {% else %}-{% endif %}
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="text-muted">Belum ada dokumen.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (() => {
+    const clearForm = document.getElementById('clearNewIdentifiedForm');
+    if (!clearForm) return;
+
+    clearForm.addEventListener('submit', (event) => {
+      const confirmed = window.confirm(
+        'Hapus semua dokumen berstatus baru dan teridentifikasi beserta file salinan dari folder aplikasi?'
+      );
+      if (!confirmed) event.preventDefault();
+    });
+  })();
+
+  (() => {
+    const input = document.getElementById('folderImportInput');
+    const button = document.getElementById('folderImportButton');
+    const startButton = document.getElementById('folderImportStartButton');
+    const selectionSummary = document.getElementById('folderSelectionSummary');
+    const form = document.getElementById('folderImportForm');
+    const importIdInput = document.getElementById('folderImportId');
+    const progressWrap = document.getElementById('folderImportProgress');
+    const progressBar = document.getElementById('folderImportProgressBar');
+    const percentText = document.getElementById('folderImportPercent');
+    const statusText = document.getElementById('folderImportStatus');
+    if (!input || !button || !startButton || !selectionSummary || !form || !importIdInput || !progressWrap || !progressBar || !percentText || !statusText) return;
+
+    let selectedPdfFiles = [];
+    let selectedSkipped = 0;
+
+    const maxUploadBytes = {{ config.MAX_CONTENT_LENGTH|tojson }};
+    const maxFormParts = {{ config.MAX_FORM_PARTS|tojson }};
+
+    const setProgress = (percent, status) => {
+      const value = Math.max(0, Math.min(100, percent));
+      progressBar.style.width = `${value}%`;
+      progressBar.textContent = `${value}%`;
+      progressBar.setAttribute('aria-valuenow', String(value));
+      percentText.textContent = `${value}%`;
+      statusText.textContent = status;
+    };
+
+    const makeImportId = () => {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    const formatBytes = (bytes) => {
+      if (!bytes) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB'];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / (1024 ** index)).toFixed(index ? 1 : 0)} ${units[index]}`;
+    };
+
+    button.addEventListener('click', () => input.click());
+    input.addEventListener('change', () => {
+      if (!input.files.length) return;
+      const pdfFiles = Array.from(input.files).filter((file) => file.name.toLowerCase().endsWith('.pdf'));
+      const skipped = input.files.length - pdfFiles.length;
+      const totalBytes = pdfFiles.reduce((sum, file) => sum + file.size, 0);
+
+      if (!pdfFiles.length) {
+        progressWrap.classList.remove('d-none');
+        setProgress(0, 'Tidak ada file PDF di folder yang dipilih.');
+        input.value = '';
+        selectedPdfFiles = [];
+        startButton.disabled = true;
+        selectionSummary.textContent = 'Folder belum siap';
+        selectionSummary.className = 'badge text-bg-danger';
+        return;
+      }
+      if (maxUploadBytes && totalBytes > maxUploadBytes) {
+        progressWrap.classList.remove('d-none');
+        setProgress(0, `Total PDF ${formatBytes(totalBytes)} melebihi batas ${formatBytes(maxUploadBytes)}.`);
+        input.value = '';
+        selectedPdfFiles = [];
+        startButton.disabled = true;
+        selectionSummary.textContent = 'Folder terlalu besar';
+        selectionSummary.className = 'badge text-bg-danger';
+        return;
+      }
+      if (maxFormParts && pdfFiles.length + 1 > maxFormParts) {
+        progressWrap.classList.remove('d-none');
+        setProgress(0, `Jumlah PDF ${pdfFiles.length} melebihi batas ${maxFormParts - 1} file per upload.`);
+        input.value = '';
+        selectedPdfFiles = [];
+        startButton.disabled = true;
+        selectionSummary.textContent = 'Terlalu banyak PDF';
+        selectionSummary.className = 'badge text-bg-danger';
+        return;
+      }
+
+      selectedPdfFiles = pdfFiles;
+      selectedSkipped = skipped;
+      startButton.disabled = false;
+      selectionSummary.textContent = `SIAP: ${pdfFiles.length} PDF · ${formatBytes(totalBytes)}${skipped ? ` · ${skipped} non-PDF diabaikan` : ''}`;
+      selectionSummary.className = 'badge text-bg-success';
+      progressWrap.classList.remove('d-none');
+      setProgress(0, 'Folder siap. Periksa jumlahnya, lalu klik Mulai Import Folder.');
+    });
+
+    startButton.addEventListener('click', () => {
+      const pdfFiles = selectedPdfFiles;
+      const skipped = selectedSkipped;
+      if (!pdfFiles.length) return;
+
+      const importId = makeImportId();
+      importIdInput.value = importId;
+      startButton.disabled = true;
+      startButton.textContent = 'Mengunggah...';
+      progressWrap.classList.remove('d-none');
+      setProgress(0, `Mengunggah ${pdfFiles.length} PDF${skipped ? `, ${skipped} file non-PDF diabaikan` : ''}...`);
+
+      let polling = null;
+      const startImportPolling = () => {
+        if (polling) return;
+        polling = window.setInterval(async () => {
+          try {
+            const response = await fetch(`/actions/import-folder/status/${encodeURIComponent(importId)}`, {
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data.phase === 'selesai') {
+              window.clearInterval(polling);
+              polling = null;
+              startButton.textContent = 'Selesai';
+              setProgress(100, data.message || 'Pemeriksaan folder selesai. Memuat laporan...');
+              window.location.href = "{{ url_for('dashboard.index') }}";
+              return;
+            }
+            if (data.phase === 'gagal') {
+              window.clearInterval(polling);
+              polling = null;
+              startButton.disabled = false;
+              startButton.textContent = 'Ulangi Import Folder';
+              setProgress(0, data.message || 'Import folder gagal.');
+              return;
+            }
+            if (!data.total) {
+              statusText.textContent = data.message || 'Upload selesai. Menunggu proses import...';
+              return;
+            }
+            const percent = Math.round((data.current / data.total) * 100);
+            if (data.phase === 'import') startButton.textContent = 'Mengimport...';
+            if (data.phase === 'identifikasi') startButton.textContent = 'Mengidentifikasi...';
+            setProgress(percent, data.message || `Import ${data.current} / ${data.total}`);
+          } catch (error) {
+            statusText.textContent = 'Menunggu status import...';
+          }
+        }, 1000);
+      };
+
+      const request = new XMLHttpRequest();
+      request.open('POST', form.action);
+      request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      request.upload.addEventListener('progress', (event) => {
+        if (!event.lengthComputable) {
+          statusText.textContent = `Mengunggah ${pdfFiles.length} PDF...`;
+          return;
+        }
+        const percent = Math.round((event.loaded / event.total) * 100);
+        setProgress(percent, percent >= 100 ? 'Upload selesai. Memproses import...' : `Mengunggah ${pdfFiles.length} PDF...`);
+        if (percent >= 100) startImportPolling();
+      });
+      request.addEventListener('load', () => {
+        if (polling) {
+          window.clearInterval(polling);
+          polling = null;
+        }
+        if (request.status >= 200 && request.status < 300) {
+          let data = {};
+          try {
+            data = JSON.parse(request.responseText || '{}');
+          } catch (error) {
+            data = {};
+          }
+          if (data.phase === 'mulai') {
+            startButton.textContent = 'Memproses...';
+            setProgress(100, data.message || 'Upload selesai. Memproses import...');
+            startImportPolling();
+            return;
+          }
+          setProgress(100, data.message || 'Import, identifikasi, dan pemisahan selesai. Memuat ulang dashboard...');
+          window.location.href = "{{ url_for('dashboard.index') }}";
+          return;
+        }
+        startButton.disabled = false;
+        startButton.textContent = 'Ulangi Import Folder';
+        try {
+          const data = JSON.parse(request.responseText);
+          statusText.textContent = data.message || 'Upload gagal. Coba pilih folder yang lebih kecil.';
+        } catch (error) {
+          statusText.textContent = 'Upload gagal. Coba pilih folder yang lebih kecil.';
+        }
+      });
+      request.addEventListener('error', () => {
+        if (polling) {
+          window.clearInterval(polling);
+          polling = null;
+        }
+        startButton.disabled = false;
+        startButton.textContent = 'Ulangi Import Folder';
+        statusText.textContent = 'Upload gagal karena koneksi terputus.';
+      });
+      const formData = new FormData();
+      formData.append('import_id', importId);
+      pdfFiles.forEach((file) => {
+        formData.append('pdf_folder', file, file.webkitRelativePath || file.name);
+      });
+      request.send(formData);
+    });
+  })();
+
+  (() => {
+    const progressWrap = document.getElementById('uploadReadyProgress');
+    const progressBar = document.getElementById('uploadReadyProgressBar');
+    const percentText = document.getElementById('uploadReadyPercent');
+    const statusText = document.getElementById('uploadReadyStatus');
+    const pauseButton = document.getElementById('uploadPauseButton');
+    const resumeButton = document.getElementById('uploadResumeButton');
+    const forms = document.querySelectorAll('.upload-ready-form');
+    if (!forms.length || !progressWrap || !progressBar || !percentText || !statusText || !pauseButton || !resumeButton) return;
+
+    let activeUploadId = null;
+
+    const setProgress = (percent, status) => {
+      const value = Math.max(0, Math.min(100, percent));
+      progressBar.style.width = `${value}%`;
+      progressBar.textContent = `${value}%`;
+      progressBar.setAttribute('aria-valuenow', String(value));
+      percentText.textContent = `${value}%`;
+      statusText.textContent = status;
+    };
+
+    const setPauseState = (paused, active) => {
+      pauseButton.disabled = !active || paused;
+      resumeButton.disabled = !active || !paused;
+    };
+
+    const makeUploadId = () => {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    };
+
+    forms.forEach((form) => {
+      const button = form.querySelector('.upload-ready-button');
+      const uploadIdInput = form.querySelector('.upload-ready-id');
+      if (!button || !uploadIdInput) return;
+
+      button.addEventListener('click', () => {
+        const uploadId = makeUploadId();
+        activeUploadId = uploadId;
+        uploadIdInput.value = uploadId;
+        document.querySelectorAll('.upload-ready-button').forEach((item) => {
+          item.disabled = true;
+        });
+        const originalText = button.textContent;
+        button.textContent = 'Mengupload...';
+        progressWrap.classList.remove('d-none');
+        setPauseState(false, true);
+        setProgress(0, `Menyiapkan ${originalText}...`);
+
+        let polling = window.setInterval(async () => {
+          try {
+            const response = await fetch(`/actions/upload-ready/status/${encodeURIComponent(uploadId)}`, {
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+            if (!data.total) {
+              statusText.textContent = data.message || `Menunggu proses ${originalText}...`;
+              return;
+            }
+            const percent = Math.round((data.current / data.total) * 100);
+            setProgress(percent, data.message || `Upload ${data.current} / ${data.total}`);
+            setPauseState(Boolean(data.paused), data.phase !== 'selesai' && data.phase !== 'gagal');
+            if (data.phase === 'selesai' || data.phase === 'gagal') {
+              window.clearInterval(polling);
+              polling = null;
+              setPauseState(false, false);
+              window.setTimeout(() => {
+                window.location.href = "{{ url_for('dashboard.index') }}";
+              }, 900);
+            }
+          } catch (error) {
+            statusText.textContent = 'Menunggu status upload...';
+          }
+        }, 1000);
+
+        const request = new XMLHttpRequest();
+        request.open('POST', form.action);
+        request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        request.addEventListener('load', () => {
+          if (request.status >= 200 && request.status < 300) {
+            let data = {};
+            try {
+              data = JSON.parse(request.responseText || '{}');
+            } catch (error) {
+              data = {};
+            }
+            if (data.phase === 'mulai') {
+              statusText.textContent = data.message || 'Upload dimulai. Menunggu status...';
+              return;
+            }
+            if (polling) window.clearInterval(polling);
+            setProgress(100, 'Upload selesai. Memuat ulang dashboard...');
+            setPauseState(false, false);
+            window.location.href = "{{ url_for('dashboard.index') }}";
+            return;
+          }
+          if (polling) window.clearInterval(polling);
+          document.querySelectorAll('.upload-ready-button').forEach((item) => {
+            item.disabled = false;
+          });
+          button.textContent = originalText;
+          setPauseState(false, false);
+          try {
+            const data = JSON.parse(request.responseText);
+            statusText.textContent = data.message || 'Upload gagal.';
+          } catch (error) {
+            statusText.textContent = 'Upload gagal. Cek konfigurasi Selenium dan log upload.';
+          }
+        });
+        request.addEventListener('error', () => {
+          if (polling) window.clearInterval(polling);
+          document.querySelectorAll('.upload-ready-button').forEach((item) => {
+            item.disabled = false;
+          });
+          button.textContent = originalText;
+          setPauseState(false, false);
+          statusText.textContent = 'Koneksi terputus saat upload.';
+        });
+        request.send(new FormData(form));
+      });
+    });
+
+    pauseButton.addEventListener('click', async () => {
+      if (!activeUploadId) return;
+      pauseButton.disabled = true;
+      statusText.textContent = 'Mengirim perintah jeda...';
+      await fetch(`/actions/upload-ready/pause/${encodeURIComponent(activeUploadId)}`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      setPauseState(true, true);
+    });
+
+    resumeButton.addEventListener('click', async () => {
+      if (!activeUploadId) return;
+      resumeButton.disabled = true;
+      statusText.textContent = 'Melanjutkan upload...';
+      await fetch(`/actions/upload-ready/resume/${encodeURIComponent(activeUploadId)}`, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      });
+      setPauseState(false, true);
+    });
+  })();
+</script>
+{% endblock %}

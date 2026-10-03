@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h1 class="h4 mb-0">Verifikasi Dokumen</h1>
+      <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('documents.pdf', document_id=document.id) }}" target="_blank">Buka PDF</a>
+    </div>
+    {% if document.preview_path %}
+    <img class="preview-large border" src="{{ url_for('documents.preview', document_id=document.id) }}" alt="Preview PDF">
+    {% else %}
+    <div class="border p-5 text-center text-muted">Preview belum tersedia</div>
+    {% endif %}
+  </div>
+  <div class="col-lg-7">
+    <form method="post" class="mb-3">
+      <div class="mb-3">
+        <label class="form-label">Nama file asli</label>
+        <input class="form-control" value="{{ document.original_filename }}" disabled>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Nama file baru</label>
+        <input class="form-control" value="{{ document.new_filename or '' }}" disabled>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">File hasil</label>
+        <input class="form-control" value="{{ document.export_path or '' }}" disabled>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Nomor perkara</label>
+        <input class="form-control" name="case_number" value="{{ document.case_number or '' }}">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Jenis dokumen</label>
+        <input class="form-control" name="document_type" list="document-types" value="{{ document.document_type or '' }}">
+        <datalist id="document-types">
+          <option value="Penetapan Majelis Hakim">
+          <option value="Penunjukan Panitera">
+          <option value="Penunjukan Jurusita">
+          <option value="Penetapan Hari Sidang">
+          <option value="Gabungan PP/Jurusita">
+        </datalist>
+      </div>
+      <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="is_verified" id="is_verified" {% if document.is_verified %}checked{% endif %}>
+        <label class="form-check-label" for="is_verified">Data sudah diverifikasi</label>
+      </div>
+      <button class="btn btn-primary">Simpan Verifikasi</button>
+    </form>
+
+    <form method="post" action="{{ url_for('documents.rename', document_id=document.id) }}" class="mb-4">
+      <button class="btn btn-success" {% if not document.is_verified %}disabled{% endif %}>Rename Dokumen</button>
+    </form>
+
+    <form method="post" action="{{ url_for('documents.split', document_id=document.id) }}" class="mb-4">
+      <button class="btn btn-warning">Pisahkan PP/Jurusita</button>
+    </form>
+
+    {% if document.status == 'gagal_upload' %}
+    <form method="post" action="{{ url_for('documents.retry_upload', document_id=document.id) }}" class="mb-3">
+      <button class="btn btn-warning">Siapkan untuk Upload Ulang</button>
+    </form>
+    {% endif %}
+
+    {% if document.status == 'perlu_verifikasi' %}
+    <form method="post" action="{{ url_for('documents.delete', document_id=document.id) }}" class="mb-3" onsubmit="return confirm('Hapus dokumen ini beserta file salinannya?')">
+      <button class="btn btn-danger">Hapus Dokumen Ini</button>
+    </form>
+    {% endif %}
+
+    <div class="mb-3">
+      <div class="fw-semibold">Status</div>
+      <span class="badge text-bg-secondary">{{ document.status.replace('_', ' ') }}</span>
+    </div>
+    {% if document.error_message %}
+    <div class="alert alert-warning">{{ document.error_message }}</div>
+    {% endif %}
+    <div>
+      <div class="fw-semibold mb-2">Teks OCR</div>
+      <pre class="ocr-text">{{ document.ocr_text or 'Belum ada hasil OCR.' }}</pre>
+    </div>
+  </div>
+</div>
+{% endblock %}

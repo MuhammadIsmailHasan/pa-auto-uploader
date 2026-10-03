@@ -1,0 +1,18 @@
+[Unit]
+Description=Upload BAS E-Kepaniteraan ke SIPP melalui antarmuka resmi
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=panitera
+Group=panitera
+WorkingDirectory=/home/panitera/perkara_pdf_manager
+Environment=PATH=/home/panitera/perkara_pdf_manager/.venv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DISPLAY=:0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+ExecStart=/home/panitera/perkara_pdf_manager/.venv/bin/flask --app app upload-wicaksana-bas --show-browser
+
+[Install]
+WantedBy=multi-user.target

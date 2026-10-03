@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Auto PDF Uploader
+Comment=Buka dashboard upload PDF otomatis
+Exec=/home/panitera/perkara_pdf_manager/scripts/open_app.sh
+Path=/home/panitera/perkara_pdf_manager
+Terminal=false
+Categories=Office;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Stop Rekam Upload
+Comment=Hentikan rekaman praktik upload dokumen
+Exec=/home/panitera/perkara_pdf_manager/scripts/stop_recording.sh
+Path=/home/panitera/perkara_pdf_manager
+Terminal=true
+Categories=Utility;

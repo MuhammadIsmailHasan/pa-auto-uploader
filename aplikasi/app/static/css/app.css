@@ -1,0 +1,44 @@
+body {
+  background: #f6f7f9;
+}
+
+.stat-card {
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.import-progress {
+  max-width: 720px;
+}
+
+.import-progress .progress {
+  height: 1.25rem;
+}
+
+.preview-cell {
+  width: 86px;
+}
+
+.preview-cell img {
+  width: 64px;
+  height: 86px;
+  object-fit: cover;
+  border: 1px solid #dee2e6;
+}
+
+.preview-large {
+  width: 100%;
+  max-height: 76vh;
+  object-fit: contain;
+  background: #fff;
+}
+
+.ocr-text {
+  max-height: 420px;
+  overflow: auto;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  white-space: pre-wrap;
+}

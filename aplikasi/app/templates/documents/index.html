@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row justify-content-between gap-3 mb-3">
+  <h1 class="h4 mb-0">Daftar Dokumen</h1>
+  <form class="d-flex gap-2" method="get">
+    <select class="form-select" name="status">
+      <option value="">Semua status</option>
+      {% for item in statuses %}
+      <option value="{{ item }}" {% if request.args.get('status') == item %}selected{% endif %}>{{ item.replace('_', ' ') }}</option>
+      {% endfor %}
+    </select>
+    <input class="form-control" name="q" value="{{ request.args.get('q', '') }}" placeholder="Cari">
+    <button class="btn btn-primary">Filter</button>
+  </form>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead>
+      <tr>
+        <th>Preview</th>
+        <th>File</th>
+        <th>Nomor Perkara</th>
+        <th>Jenis</th>
+        <th>Status</th>
+        <th>Verifikasi</th>
+        <th>Error</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in documents.items %}
+      <tr>
+        <td class="preview-cell">
+          {% if doc.preview_path %}
+          <img src="{{ url_for('documents.preview', document_id=doc.id) }}" alt="Preview {{ doc.original_filename }}">
+          {% else %}
+          <span class="text-muted">-</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('documents.detail', document_id=doc.id) }}">{{ doc.original_filename }}</a>
+          {% if doc.new_filename %}<div class="text-muted small">{{ doc.new_filename }}</div>{% endif %}
+        </td>
+        <td>{{ doc.case_number or '-' }}</td>
+        <td>{{ doc.document_type or '-' }}</td>
+        <td><span class="badge text-bg-secondary">{{ doc.status.replace('_', ' ') }}</span></td>
+        <td>{{ 'Ya' if doc.is_verified else 'Belum' }}</td>
+        <td class="small {% if doc.error_message %}text-danger{% else %}text-muted{% endif %}">{{ doc.error_message or '-' }}</td>
+        <td>
+          <div class="d-flex gap-1 flex-wrap">
+            <a class="btn btn-outline-primary btn-sm" href="{{ url_for('documents.detail', document_id=doc.id) }}">Detail</a>
+            {% if doc.status == 'gagal_upload' %}
+            <form method="post" action="{{ url_for('documents.retry_upload', document_id=doc.id) }}">
+              <button class="btn btn-outline-warning btn-sm">Siapkan Ulang</button>
+            </form>
+            {% endif %}
+            {% if doc.status == 'perlu_verifikasi' %}
+            <form method="post" action="{{ url_for('documents.delete', document_id=doc.id) }}" onsubmit="return confirm('Hapus dokumen ini beserta file salinannya?')">
+              <button class="btn btn-outline-danger btn-sm">Hapus</button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8" class="text-muted">Tidak ada dokumen.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<nav>
+  <ul class="pagination">
+    {% if documents.has_prev %}
+    <li class="page-item"><a class="page-link" href="{{ url_for('documents.index', page=documents.prev_num, status=request.args.get('status', ''), q=request.args.get('q', '')) }}">Sebelumnya</a></li>
+    {% endif %}
+    <li class="page-item disabled"><span class="page-link">Halaman {{ documents.page }} / {{ documents.pages or 1 }}</span></li>
+    {% if documents.has_next %}
+    <li class="page-item"><a class="page-link" href="{{ url_for('documents.index', page=documents.next_num, status=request.args.get('status', ''), q=request.args.get('q', '')) }}">Berikutnya</a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endblock %}

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div><h2>Dokumen Pendaftaran Awal</h2><p class="text-muted mb-0">Isi sekali, lalu unduh paket Microsoft Word berdasarkan template resmi.</p></div>
+  <span class="badge text-bg-primary">Tahap 1 · Isian manual</span>
+</div>
+<form method="post" class="card shadow-sm"><div class="card-body">
+  <input type="hidden" name="case_flow" id="caseFlow">
+  <input type="hidden" name="is_ghaib" id="isGhaib">
+  <div class="alert alert-light border mb-4"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">Tanggal pendaftaran</label><input class="form-control" id="registrationDate" type="date"></div><div class="col-md-2"><button class="btn btn-success w-100" id="loadCases" type="button">Tampilkan Perkara</button></div><div class="col-md-6"><label class="form-label">Pilih perkara</label><select class="form-select" id="casePicker" disabled><option>Pilih tanggal terlebih dahulu</option></select></div></div></div>
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label">Blangko terdeteksi otomatis</label><select class="form-select" id="templateKind" name="kind" required>{% for key,item in templates.items() %}<option value="{{ key }}">{{ item[0] }}</option>{% endfor %}</select></div>
+    <div class="col-md-4"><label class="form-label">Nomor perkara</label><div class="input-group"><input class="form-control" id="caseNumber" name="nomor" placeholder="123/Pdt.G/2026/PA.Ngw" required><button class="btn btn-outline-success" id="loadSipp" type="button">Ambil dari SIPP</button></div><div id="sippStatus" class="form-text">Koneksi hanya baca.</div></div>
+    <div class="col-md-4"><label class="form-label">Tanggal pendaftaran</label><input class="form-control" name="tanggal" placeholder="14 Agustus 2026" required></div>
+    <div class="col-md-4"><label class="form-label">Jenis perkara</label><input class="form-control" name="jenis_perkara" required></div>
+    <div class="col-md-4"><label class="form-label">Pihak pertama</label><input class="form-control" name="pihak_1" required></div>
+    <div class="col-md-4"><label class="form-label">Email pihak pertama</label><input class="form-control" name="pihak_1_email" type="email" placeholder="Diambil dari SIPP"></div>
+    <div class="col-md-4"><label class="form-label">Pihak kedua</label><input class="form-control" name="pihak_2"></div>
+    <div class="col-md-4"><label class="form-label">Nama pada SKUM</label><input class="form-control" name="nama_skum" required></div>
+    <div class="col-md-4"><label class="form-label">Panjar biaya (tanpa Rp)</label><input class="form-control" name="biaya" placeholder="361.000" required></div>
+    <div class="col-md-4"><label class="form-label">Terbilang biaya</label><input class="form-control bg-light" name="terbilang" readonly placeholder="Terisi otomatis dari panjar SIPP"></div>
+  </div>
+  <hr class="my-4"><h5>Petugas dan persidangan</h5><p class="text-muted small">Diisi otomatis dari SIPP melalui koneksi hanya-baca dan tetap dapat diperiksa sebelum dicetak.</p>
+  <div id="classification" class="alert alert-secondary d-none"></div>
+  <div id="partyList" class="alert alert-light border d-none" style="white-space:pre-line"></div>
+  <div class="row g-3">
+    <div class="col-md-4"><label class="form-label">Ketua majelis / hakim tunggal</label><input class="form-control" name="hakim_ketua" required></div>
+    <div class="col-md-4"><label class="form-label">Hakim anggota 1</label><input class="form-control" name="hakim_anggota_1"></div>
+    <div class="col-md-4"><label class="form-label">Hakim anggota 2</label><input class="form-control" name="hakim_anggota_2"></div>
+    <div class="col-md-4"><label class="form-label">Panitera Pengganti</label><input class="form-control" name="pp" required></div>
+    <div class="col-md-4"><label class="form-label">Jurusita/JSP</label><input class="form-control" name="js" required></div>
+    <div class="col-md-4"><label class="form-label">Hari dan tanggal sidang</label><input class="form-control" name="sidang" placeholder="Selasa, 25 Agustus 2026" required></div>
+    <div class="col-md-4"><label class="form-label">Kuasa hukum</label><input class="form-control" name="kuasa" placeholder="Terisi jika perkara menggunakan kuasa"></div>
+    <div class="col-md-4"><label class="form-label">Alamat kuasa hukum</label><input class="form-control" name="kuasa_alamat" placeholder="Diambil dari SIPP jika ada kuasa"></div>
+    <div class="col-md-4"><label class="form-label">Email kuasa hukum</label><input class="form-control" name="kuasa_email" type="email" placeholder="Diambil dari SIPP jika ada kuasa"></div>
+  </div>
+</div><div class="card-footer text-end"><button class="btn btn-primary">Buat &amp; Unduh Word</button></div></form>
+{% endblock %}
+{% block scripts %}
+<script>
+const status = document.getElementById('sippStatus');
+const picker = document.getElementById('casePicker');
+async function loadSelectedCase(number) {
+  document.getElementById('caseNumber').value = number;
+  document.getElementById('loadSipp').click();
+}
+document.getElementById('loadCases').addEventListener('click', async () => {
+  const date = document.getElementById('registrationDate').value;
+  if (!date) return;
+  picker.disabled = true; picker.innerHTML = '<option>Membaca SIPP...</option>';
+  try {
+    const response = await fetch(`{{ url_for('registration_docs.cases') }}?date=${encodeURIComponent(date)}`);
+    const result = await response.json(); if (!response.ok) throw new Error(result.message);
+    picker.innerHTML = '<option value="">Pilih perkara...</option>' + result.items.map(item => `<option value="${item.number}">${item.number} · ${item.type} · ${item.judge_type}${item.lawyer?' · Kuasa':''}${item.ghaib?' · Ghaib':''}</option>`).join('');
+    picker.disabled = false; status.textContent = `${result.items.length} perkara ditemukan.`;
+  } catch (error) { picker.innerHTML='<option>Gagal membaca data</option>'; status.textContent=error.message; }
+});
+picker.addEventListener('change', () => { if (picker.value) loadSelectedCase(picker.value); });
+document.getElementById('loadSipp').addEventListener('click', async () => {
+  const button = document.getElementById('loadSipp');
+  const status = document.getElementById('sippStatus');
+  const number = document.getElementById('caseNumber').value.trim();
+  if (!number) { status.textContent = 'Masukkan nomor perkara terlebih dahulu.'; return; }
+  button.disabled = true; status.textContent = 'Membaca SIPP (read-only)...';
+  try {
+    const response = await fetch(`{{ url_for('registration_docs.lookup') }}?number=${encodeURIComponent(number)}`);
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.message || 'Data tidak ditemukan.');
+    const autoFields = ['nomor','tanggal','jenis_perkara','pihak_1','pihak_1_email','pihak_2','nama_skum','biaya','terbilang','hakim_ketua','hakim_anggota_1','hakim_anggota_2','pp','js','sidang','kuasa','kuasa_alamat','kuasa_email'];
+    autoFields.forEach(name => {
+      const value = result.data[name] ?? '';
+      const field = document.querySelector(`[name="${name}"]`);
+      if (field) field.value = value;
+    });
+    document.getElementById('templateKind').value = result.data.template_kind;
+    const c = result.data.classification;
+    document.getElementById('caseFlow').value = c.case_flow;
+    document.getElementById('isGhaib').value = result.data.is_ghaib ? '1' : '0';
+    const js = c.bailiffs.map(x => `${x.name} (${x.role})`).join(', ') || 'Belum ditetapkan';
+    const kuasa = c.lawyers.map(x => x.name).join(', ') || 'Tidak ada';
+    const box = document.getElementById('classification');
+    box.className = `alert ${c.complete?'alert-success':'alert-warning'}`;
+    box.innerHTML = `<b>Hasil pembacaan SIPP</b><br>${c.case_flow} · ${c.judge_type} · ${c.representation} · ${c.defendant_status}<br>Blangko: ${document.getElementById('templateKind').selectedOptions[0].text}<br>Kuasa: ${kuasa}<br>JS/JSP: ${js}<br>Pihak pertama: ${c.party1_summons}<br>Pihak lawan: ${c.party2_summons}${c.complete?'':'<br><b>Data penetapan belum lengkap; periksa sebelum membuat Word.</b>'}`;
+    const firstParties = result.data.parties_1 || [];
+    const secondParties = result.data.parties_2 || [];
+    const fourthParties = result.data.parties_4 || [];
+    const partyList = document.getElementById('partyList');
+    if (firstParties.length > 1 || secondParties.length > 1 || fourthParties.length) {
+      const firstLabel = c.case_flow === 'Permohonan' ? 'Pemohon' : 'Penggugat';
+      const lines = [`${firstLabel} (${firstParties.length}): ${firstParties.map(x => x.name).join(', ')}`, `${c.case_flow === 'Permohonan' ? 'Pihak lawan' : 'Tergugat'} (${secondParties.length}): ${secondParties.map(x => x.name).join(', ') || 'Tidak ada'}`];
+      if (fourthParties.length) {
+        const roman = value => {
+          let result = '';
+          for (const [number, numeral] of [[1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'], [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]) {
+            while (value >= number) { result += numeral; value -= number; }
+          }
+          return result;
+        };
+        lines.push(`Turut Tergugat (${fourthParties.length}): ${fourthParties.map((x, index) => `${roman(index + 1)}. ${x.name}`).join(', ')}`);
+      }
+      partyList.textContent = lines.join('\n');
+      partyList.classList.remove('d-none');
+    } else {
+      partyList.classList.add('d-none');
+    }
+    status.textContent = 'Data berhasil diambil dari SIPP · READ ONLY. Periksa sebelum membuat Word.';
+    status.className = 'form-text text-success';
+  } catch (error) {
+    status.textContent = error.message; status.className = 'form-text text-danger';
+  } finally { button.disabled = false; }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Install Auto PDF Uploader
+Comment=Install dependency dan siapkan database Auto PDF Uploader
+Exec=/home/panitera/perkara_pdf_manager/scripts/install_ready.sh
+Path=/home/panitera/perkara_pdf_manager
+Terminal=true
+Categories=Office;

@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+logs/*.log
+processed/*
+previews/*
+uploads/*
+!processed/.gitkeep
+!previews/.gitkeep
+!uploads/.gitkeep

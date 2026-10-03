@@ -1,0 +1,30 @@
+AUTO PDF UPLOADER - PAKET MIGRASI
+Tanggal snapshot : 2026-10-03 (Asia/Jakarta)
+Aplikasi asal    : /home/panitera/perkara_pdf_manager
+Database asal    : MySQL/MariaDB perkara_pdf_manager pada 127.0.0.1
+Data PDF asal    : /srv/perkara_pdf_manager (sekitar 11 GB)
+Dump selesai     : 2026-10-03 08:49:10 Asia/Jakarta
+
+VALIDASI DATABASE SAAT SNAPSHOT
+- 3 tabel.
+- documents: 8.512 baris.
+- upload_accounts: 6 baris.
+- upload_logs: 63.739 baris.
+
+DISERTAKAN
+- Source aplikasi, asset, template RTF, tests, dan skrip.
+- Schema dan dump data database aplikasi perkara_pdf_manager.
+- Contoh konfigurasi tanpa rahasia.
+- Panduan instalasi/migrasi dan checksum SHA-256.
+
+TIDAK DISERTAKAN
+- .env aktif (memuat rahasia).
+- .venv (harus dibuat ulang pada mesin tujuan).
+- Log dan cache Python.
+- Folder data PDF /srv/perkara_pdf_manager (sekitar 11 GB).
+- Database utama SIPP; aplikasi hanya membacanya melalui koneksi read-only.
+- Aplikasi eksternal e_kepaniteraan_integration_stage dan wicaksana.
+
+CATATAN KEAMANAN
+Dump database aplikasi dapat memuat data dokumen dan kredensial akun upload.
+Simpan paket di lokasi terbatas dan ganti password setelah serah terima bila perlu.

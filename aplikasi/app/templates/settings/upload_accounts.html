@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Setting Akun Upload</h1>
+  {% if edit_account %}
+  <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('settings.upload_accounts') }}">Batal edit</a>
+  {% endif %}
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-body">
+        <h2 class="h6 mb-3">{{ 'Edit akun' if edit_account else 'Tambah akun' }}</h2>
+        <form method="post">
+          <input type="hidden" name="account_id" value="{{ edit_account.id if edit_account else '' }}">
+          <div class="mb-3">
+            <label class="form-label">Nama akun</label>
+            <input class="form-control" name="name" value="{{ edit_account.name if edit_account else '' }}" placeholder="Panitera / Jurusita / Operator">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Peran upload</label>
+            <select class="form-select" name="role">
+              {% for value, label in upload_roles %}
+              <option value="{{ value }}" {% if edit_account and edit_account.role == value %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">URL login</label>
+            <input class="form-control" name="login_url" value="{{ edit_account.login_url if edit_account else '' }}" placeholder="https://...">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Username</label>
+            <input class="form-control" name="username" value="{{ edit_account.username if edit_account else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Password</label>
+            <input class="form-control" type="password" name="password" value="" placeholder="{{ 'Kosongkan jika tidak diubah' if edit_account else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">BAS milik Panitera/PP</label>
+            <select class="form-select" name="sipp_panitera_id">
+              <option value="">Tidak dipakai untuk BAS</option>
+              {% for clerk in clerks %}
+              <option value="{{ clerk.id }}" {% if edit_account and edit_account.sipp_panitera_id == clerk.id %}selected{% endif %}>{{ clerk.nama }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Satu akun hanya untuk Panitera/PP yang dipilih. Tidak ada fallback ke akun lain.</div>
+          </div>
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="is_active" id="isActive" {% if not edit_account or edit_account.is_active %}checked{% endif %}>
+            <label class="form-check-label" for="isActive">Aktif</label>
+          </div>
+          <button class="btn btn-primary w-100">Simpan Akun</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-8">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Nama</th>
+            <th>Peran</th>
+            <th>URL Login</th>
+            <th>Username</th>
+            <th>Akun BAS milik</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for account in accounts %}
+          <tr>
+            <td>{{ account.name }}</td>
+            <td>
+              {% for value, label in upload_roles %}
+                {% if account.role == value %}{{ label }}{% endif %}
+              {% endfor %}
+            </td>
+            <td class="text-break">{{ account.login_url }}</td>
+            <td>{{ account.username }}</td>
+            <td>{{ account.sipp_panitera_name or '—' }}</td>
+            <td><span class="badge {{ 'text-bg-success' if account.is_active else 'text-bg-secondary' }}">{{ 'Aktif' if account.is_active else 'Nonaktif' }}</span></td>
+            <td class="text-end">
+              <a class="btn btn-outline-primary btn-sm" href="{{ url_for('settings.upload_accounts', edit=account.id) }}">Edit</a>
+              <form class="d-inline" method="post" action="{{ url_for('settings.delete_upload_account', account_id=account.id) }}">
+                <button class="btn btn-outline-danger btn-sm" onclick="return confirm('Hapus akun ini?')">Hapus</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="7" class="text-muted">Belum ada akun upload.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h4 mb-3">Log Upload</h1>
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead>
+      <tr>
+        <th>Waktu</th>
+        <th>Dokumen</th>
+        <th>Status</th>
+        <th>Pesan</th>
+        <th>Respon</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td>{{ entry.created_at.strftime('%d-%m-%Y %H:%M:%S') }}</td>
+        <td><a href="{{ url_for('documents.detail', document_id=entry.document_id) }}">#{{ entry.document_id }}</a></td>
+        <td>{{ entry.status }}</td>
+        <td>{{ entry.message }}</td>
+        <td>{{ entry.response_text or '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="text-muted">Belum ada log.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

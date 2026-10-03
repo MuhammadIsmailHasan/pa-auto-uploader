@@ -1,0 +1,19 @@
+[Unit]
+Description=Auto PDF Uploader Gunicorn
+After=network-online.target mysql.service mariadb.service
+Wants=network-online.target
+
+[Service]
+User=panitera
+Group=www-data
+WorkingDirectory=/home/panitera/perkara_pdf_manager
+Environment="PATH=/home/panitera/perkara_pdf_manager/.venv/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/home/panitera/perkara_pdf_manager/.venv/bin/gunicorn \
+  --workers 3 \
+  --bind 0.0.0.0:8000 \
+  wsgi:application
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

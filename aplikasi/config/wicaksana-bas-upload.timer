@@ -1,0 +1,11 @@
+[Unit]
+Description=Jadwal upload BAS E-Kepaniteraan pukul 15.00
+
+[Timer]
+OnCalendar=*-*-* 15:00:00 Asia/Jakarta
+Persistent=false
+AccuracySec=1s
+Unit=wicaksana-bas-upload.service
+
+[Install]
+WantedBy=timers.target

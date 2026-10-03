@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Mulai Rekam Upload
+Comment=Mulai merekam praktik upload dokumen
+Exec=/home/panitera/perkara_pdf_manager/scripts/start_recording.sh
+Path=/home/panitera/perkara_pdf_manager
+Terminal=true
+Categories=Utility;

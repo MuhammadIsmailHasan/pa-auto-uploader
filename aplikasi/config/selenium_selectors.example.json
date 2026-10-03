@@ -1,0 +1,22 @@
+{
+  "login": {
+    "username": "input[name='username']",
+    "password": "input[name='password']",
+    "submit": "input[type='submit'][value='Login']"
+  },
+  "search": {
+    "case_type_gugatan_link_text": "Register Induk Perkara Gugatan",
+    "case_type_permohonan_link_text": "Register Induk Perkara Permohonan",
+    "detail_search_button": "input[value='Search Detil']",
+    "case_operator_select": "#no_perkara_select",
+    "case_input": "#no_perkara",
+    "submit": "#frm_search_detil input[type='submit'][value='Cari']",
+    "open_result": "a[href*='perkara_detil_agama']"
+  },
+  "upload": {
+    "document_type_select": "#jenis_dokumen",
+    "file_input": "#fileform, input[type='file']",
+    "submit": "#simpan, input[type='submit'][value='Simpan']",
+    "response": "body"
+  }
+}
